@@ -85,4 +85,11 @@ $('.nav-close-button').click(function () {
     $('.nav-show-button').show();
 });
 
+$(window).resize(function () {
+    if ($(window).width() > 775) {
+        $('.nav').show();
+        $('.nav-show-button').hide();
+    }
+});
+
 Highlight();
