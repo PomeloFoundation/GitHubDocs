@@ -1,0 +1,77 @@
+﻿@model GitHubDocs.Models.Page
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width" />
+    <link href="~/styles/font-awesome.min.css" rel="stylesheet" />
+    <link href="~/styles/site.css" rel="stylesheet" />
+    <script src="~/scripts/jquery-3.1.1.min.js"></script>
+    <script src="~/scripts/highlight.js"></script>
+</head>
+<body>
+    <div class="nav-show-button">
+        <i class="fa fa-navicon"></i>
+    </div>
+    <div class="nav">
+        <div class="nav-logo">
+            <center>
+                <img src="~/images/logo.png" style="width: 280px" />
+            </center>
+        </div>
+        <div class="nav-list">
+            @(new Microsoft.AspNetCore.Html.HtmlString(Model.Toc))
+        </div>
+        <div class="nav-branch">
+            <a href="javascript:ShowBranches();">@(string.IsNullOrEmpty(Model.CurrentBranch) ? Model.Branches.First() : Model.CurrentBranch) <i class="fa fa-caret-down"></i></a>
+            <a href="javascript:;" class="nav-close-button">Close</a>
+        </div>
+        <div class="nav-branch-list">
+            @foreach (var x in Model.Branches)
+            {
+                <a href="/@x@Model.Endpoint">@x</a>
+            }
+        </div>
+    </div>
+    <div class="doc-content">
+        @Html.Marked(Model.Content)
+        @if (Model.Endpoint != "/index.md")
+        {
+            <div id="disqus_thread"></div>
+         }
+        <div class="content-contribution">
+            @if (Model.Contribution.LastUpdate.HasValue) { 
+                <span>@Model.Contribution.LastUpdate.Value.ToString("yyyy/MM/dd")</span>
+            }
+            @if (Model.Contribution.LastUpdate.HasValue && Model.Contribution.Contributors.Count > 0)
+            {
+                <span>&nbsp;@("·")&nbsp;</span>
+            }
+            @if (Model.Contribution.LastUpdate.HasValue && Model.Contribution.Contributors.Count > 0)
+            {
+                <span>Contributors</span>
+                @foreach (var x in Model.Contribution.Contributors)
+                {
+                    <a class="contributor" href="https://github.com/@x.Key" target="_blank" alt="@x.Key"><img src="@x.Value" alt="@x.Key" /></a>
+                }
+            }
+            @if (Model.Contribution.LastUpdate.HasValue || Model.Contribution.Contributors.Count > 0)
+            {
+                <span>&nbsp;@("·")&nbsp;</span>
+            }
+            <a href="https://github.com/@GitHubDocs.Startup.Config["Organization"]/@GitHubDocs.Startup.Config["Repository"]/blob/@(string.IsNullOrEmpty(Model.CurrentBranch) ? Model.Branches.First() : Model.CurrentBranch)/@GitHubDocs.Startup.Config["RootPath"]/@Model.Endpoint" target="_blank">Edit on GitHub</a>
+        </div>
+    </div>
+    <script>
+        var endpoint = '@Model.Endpoint';
+        var branch = '@Model.CurrentBranch';
+        var disqus_shortname = "@GitHubDocs.Startup.Config["Disqus"]";
+        (function () {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <script src="~/scripts/site.js"></script>
+</body>
+</html>
