@@ -69,6 +69,8 @@ namespace GitHubDocs.Lib
         private static Regex ContributorNameRegex = new Regex(@"(?<=<a class=""avatar-link tooltipped tooltipped-s"" aria-label="")[a-zA-Z0-9_-]{0,}(?="" href="")");
         private static Regex ContributorAvatarRegex = new Regex(@"(?<= class=""avatar"" height=""20"" src="").*(?="" width=""20"" /> </a>)");
         private static Regex ContributorLastUpdateRegex = new Regex(@"(?<=<relative-time datetime="")[0-9TZ:-]{0,}(?="">)");
+        private static Regex SingleContributorNameRegex = new Regex(@"(?<=<img alt=""@)[a-zA-Z0-9_-]{0,}(?="" class=""avatar"" height=""20"" src=)");
+        private static Regex SingleContributorAvatarRegex = new Regex(@"(?<="" class=""avatar"" height=""20"" src="").*(?="" width=""20"" />)");
         public static async Task<Models.Contribution> GetContributionAsync(string Branch, string Endpoint)
         {
             var url = $"https://github.com/{Startup.Config["Organization"]}/{Startup.Config["Repository"]}/contributors/{Branch}/{Startup.Config["RootPath"]}/{Endpoint}";
@@ -97,6 +99,18 @@ namespace GitHubDocs.Lib
                     }
                     catch
                     {
+                    }
+                    if (ret.Contributors.Count == 0)
+                    {
+                        try
+                        {
+                            var match = SingleContributorNameRegex.Match(html);
+                            if (match.Success)
+                            {
+                                ret.Contributors.Add(match.Value, SingleContributorAvatarRegex.Match(html).Value);
+                            }
+                        }
+                        catch { }
                     }
                     if (CachedContributor.ContainsKey(url))
                     {
