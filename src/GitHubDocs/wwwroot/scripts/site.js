@@ -2,7 +2,10 @@
 for (var i = 0; i < anchors.length; i++) {
     var nxt = $(anchors[i]).next();
     if (nxt.length > 0 && nxt[0].tagName.toUpperCase() == 'UL') {
-        $(anchors[i]).prepend('<i class="fa fa-angle-right"></i>');
+        if ($(anchors[i]).attr('href').indexOf('javascript:') >= 0)
+            $(anchors[i]).prepend('<i class="fa fa-angle-right"></i>');
+        else
+            $(anchors[i]).prepend('<i class="fa fa-angle-right" onclick="Expand(this)"></i>');
     } else {
         $(anchors[i]).addClass('non-arrow');
     }
@@ -38,15 +41,15 @@ var blocks = $('blockquote');
 for (var i = 0; i < blocks.length; i++) {
     $(blocks[i]).html($(blocks[i]).html().replace(/\n/g, "</p>\n<p>"));
     if ($(blocks[i]).html().indexOf('[!TIP]') >= 0) {
-        $(blocks[i]).html($(blocks[i]).html().replace('[!TIP]', '<strong>TIP</strong>'));
+        $(blocks[i]).html($(blocks[i]).html().split('[!TIP]').join('<strong>TIP</strong>'));
         $(blocks[i]).addClass('tip');
     }
     if ($(blocks[i]).html().indexOf('[!NOTE]') >= 0) {
-        $(blocks[i]).html($(blocks[i]).html().replace('[!NOTE]', '<strong>NOTE</strong>'));
+        $(blocks[i]).html($(blocks[i]).html().split('[!NOTE]').join('<strong>NOTE</strong>'));
         $(blocks[i]).addClass('info');
     }
     if ($(blocks[i]).html().indexOf('[!WARNING]') >= 0) {
-        $(blocks[i]).html($(blocks[i]).html().replace('[!WARNING]', '<strong>WARNING</strong>'));
+        $(blocks[i]).html($(blocks[i]).html().split('[!WARNING]').join('<strong>WARNING</strong>'));
         $(blocks[i]).addClass('warn');
     }
 }
@@ -58,8 +61,22 @@ if ($('.doc-content h1').length > 0 && $('article#main').length == 0) {
 }
 
 function Expand(anchor) {
-    $(anchor).next().slideDown();
-    $(anchor).children('i').removeClass('fa-angle-right').addClass('fa-angle-down');
+    var ul, a;
+    if ($(anchor).is('a'))
+    {
+        a = $(anchor);
+        ul = $(anchor).next();
+    }
+    else if ($(anchor).is('i'))
+    {
+        a = $(anchor).parents('a');
+        ul = $(anchor).parents('a').next();
+    }
+    ul.slideToggle();
+    if (a.children('i').hasClass('fa-angle-right'))
+        a.children('i').removeClass('fa-angle-right').addClass('fa-angle-down');
+    else
+        a.children('i').removeClass('fa-angle-down').addClass('fa-angle-right');
 }
 
 function ShowBranches() {
@@ -92,4 +109,12 @@ $(window).resize(function () {
     }
 });
 
+$(document).click(function (e) {
+    if ($(e.target).is('i'))
+    {
+        e.preventDefault();
+    }
+});
+
+$('.nav-list').scrollTop(active.offset().top + $('.nav-list').scrollTop() - 115);
 Highlight();

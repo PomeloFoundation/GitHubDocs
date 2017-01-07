@@ -12,31 +12,57 @@ namespace GitHubDocs.Lib
     {
         private static readonly Uri GitHubUri = new Uri("https://github.com/");
         private static Regex BranchesRegex = new Regex(@"(?<=<div class=""branch-summary js-branch-row"" data-branch-name="").*(?="">)");
+        private static List<string> CachedBranches;
+        private static DateTime CachedBranchesExpireTime;
+        private static string CachedRenderedToc;
+        private static DateTime CachedRenderedTocExpireTime;
+        private static Dictionary<string, KeyValuePair<DateTime, string>> CachedHttpContent = new Dictionary<string, KeyValuePair<DateTime, string>>();
+        private static Dictionary<string, KeyValuePair<DateTime, Models.Contribution>> CachedContributor = new Dictionary<string, KeyValuePair<DateTime, Models.Contribution>>();
 
         public static async Task<IList<string>> GetBranchesAsync()
         {
-            var url = $"{Startup.Config["Organization"]}/{Startup.Config["Repository"]}/branches/all";
-            using (var client = new HttpClient { BaseAddress = GitHubUri })
+            if (DateTime.Now > CachedBranchesExpireTime)
             {
-                var responseMessage = await client.GetAsync(url);
-                var html = await responseMessage.Content.ReadAsStringAsync();
-                var ret = new List<string>();
-                foreach (Match x in BranchesRegex.Matches(html))
+                var url = $"{Startup.Config["Organization"]}/{Startup.Config["Repository"]}/branches/all";
+                using (var client = new HttpClient { BaseAddress = GitHubUri })
                 {
-                    ret.Add(x.Value);
+                    var responseMessage = await client.GetAsync(url);
+                    var html = await responseMessage.Content.ReadAsStringAsync();
+                    var ret = new List<string>();
+                    foreach (Match x in BranchesRegex.Matches(html))
+                    {
+                        ret.Add(x.Value);
+                    }
+                    CachedBranches = ret;
+                    CachedBranchesExpireTime = DateTime.Now.AddMinutes(Convert.ToInt32(Startup.Config["Caching"]));
                 }
-                return ret;
             }
+            return CachedBranches;
         }
 
         public static async Task<string> GetRawFileAsync(string Branch, string Endpoint)
         {
             var url = $"https://raw.githubusercontent.com/{Startup.Config["Organization"]}/{Startup.Config["Repository"]}/{Branch}/{Startup.Config["RootPath"]}/{Endpoint}";
-            using (var client = new HttpClient { BaseAddress = GitHubUri })
+            if (url.EndsWith("toc.md") || !CachedHttpContent.ContainsKey(url) || DateTime.Now > CachedHttpContent[url].Key)
             {
-                var responseMessage = await client.GetAsync(url);
-                return await responseMessage.Content.ReadAsStringAsync();
+                using (var client = new HttpClient { BaseAddress = GitHubUri })
+                {
+                    var responseMessage = await client.GetAsync(url);
+                    var ret = await responseMessage.Content.ReadAsStringAsync();
+                    if (!url.EndsWith("toc.md"))
+                    {
+                        if (CachedHttpContent.ContainsKey(url))
+                            CachedHttpContent[url] = new KeyValuePair<DateTime, string>(DateTime.Now.AddMinutes(Convert.ToInt32(Startup.Config["Caching"])), ret);
+                        else
+                            CachedHttpContent.Add(url, new KeyValuePair<DateTime, string>(DateTime.Now.AddMinutes(Convert.ToInt32(Startup.Config["Caching"])), ret));
+                    }
+                    else
+                    {
+                        return ret;
+                    }
+                }
             }
+            return CachedHttpContent[url].Value;
         }
 
         private static Regex ContributorAnchorRegex = new Regex("<a class=\"avatar-link tooltipped tooltipped-s\" aria-label=\".*\" width=\"20\" /> </a>");
@@ -46,38 +72,85 @@ namespace GitHubDocs.Lib
         public static async Task<Models.Contribution> GetContributionAsync(string Branch, string Endpoint)
         {
             var url = $"https://github.com/{Startup.Config["Organization"]}/{Startup.Config["Repository"]}/contributors/{Branch}/{Startup.Config["RootPath"]}/{Endpoint}";
-            using (var client = new HttpClient { BaseAddress = GitHubUri })
+            if (!CachedContributor.ContainsKey(url) || DateTime.Now > CachedContributor[url].Key)
             {
-                var responseMessage = await client.GetAsync(url);
-                var html = await responseMessage.Content.ReadAsStringAsync();
-                var ret = new Models.Contribution();
-                foreach (Match x in ContributorAnchorRegex.Matches(html))
+                using (var client = new HttpClient { BaseAddress = GitHubUri })
                 {
+                    var responseMessage = await client.GetAsync(url);
+                    var html = await responseMessage.Content.ReadAsStringAsync();
+                    var ret = new Models.Contribution();
+                    foreach (Match x in ContributorAnchorRegex.Matches(html))
+                    {
+                        try
+                        {
+                            var key = ContributorNameRegex.Match(x.Value).Value;
+                            var value = ContributorAvatarRegex.Match(x.Value).Value;
+                            ret.Contributors.Add(key, value);
+                        }
+                        catch
+                        {
+                        }
+                    }
                     try
                     {
-                        var key = ContributorNameRegex.Match(x.Value).Value;
-                        var value = ContributorAvatarRegex.Match(x.Value).Value;
-                        ret.Contributors.Add(key, value);
+                        ret.LastUpdate = Convert.ToDateTime(ContributorLastUpdateRegex.Match(html).Value);
                     }
                     catch
                     {
                     }
+                    if (CachedContributor.ContainsKey(url))
+                    {
+                        CachedContributor[url] = new KeyValuePair<DateTime, Models.Contribution>(DateTime.Now.AddMinutes(Convert.ToInt32(Startup.Config["Caching"])), ret);
+                    }
+                    else
+                    {
+                        CachedContributor.Add(url, new KeyValuePair<DateTime, Models.Contribution>(DateTime.Now.AddMinutes(Convert.ToInt32(Startup.Config["Caching"])), ret));
+                    }
                 }
-                try
-                {
-                    ret.LastUpdate = Convert.ToDateTime(ContributorLastUpdateRegex.Match(html).Value);
-                }
-                catch
-                {
-                }
-                return ret;
             }
+            return CachedContributor[url].Value;
         }
 
-        public static async Task<string> GetTocMdAsync(string Branch)
+        public static async Task<string> RenderTocMdAsync(string Branch)
         {
-            var toc = (await GetRawFileAsync(Branch, "toc.md")).Split('\n');
-            return TocToUl(toc);
+            if (DateTime.Now > CachedRenderedTocExpireTime)
+            {
+                var toc = await GetTocMdAsync(Branch);
+                CachedRenderedToc = TocToUl(toc.Split('\n').Select(x => x.TrimEnd('\r')).ToArray());
+                CachedRenderedTocExpireTime = DateTime.Now.AddMinutes(Convert.ToInt32(Startup.Config["Caching"]));
+            }
+            return CachedRenderedToc;
+        }
+
+        private static async Task<string> GetTocMdAsync(string Branch, string Endpoint = "toc.md", int Level = 0)
+        {
+            var toc = (await GetRawFileAsync(Branch, Endpoint)).Split('\n').Select(x => x.TrimEnd('\r')).ToList();
+            var tasks = new List<Task>();
+            Parallel.For(0, toc.Count, i => {
+                tasks.Add(Task.Run(async () => 
+                {
+                    var href = AHrefRegex.Match(toc[i]).Value;
+                    var title = AInnerTextRegex.Match(toc[i]).Value;
+
+                    if (toc[i].StartsWith("#"))
+                    {
+                        toc[i] = BuildSharps(Level) + toc[i];
+                        if (!string.IsNullOrWhiteSpace(href))
+                            toc[i] = toc[i].Replace(href, Endpoint.Substring(0, Endpoint.Length - "toc.md".Length) + href);
+                    }
+
+                    if (toc[i].EndsWith("toc.md)"))
+                    {
+                        var cnt = CountLeft(toc[i], '#');
+                        if (!string.IsNullOrWhiteSpace(href))
+                        {
+                            toc[i] = BuildSharps(cnt) + " " + title + "\n" + await GetTocMdAsync(Branch, Endpoint.Substring(0, Endpoint.Length - "toc.md".Length) + href, cnt);
+                        }
+                    }
+                }));
+            });
+            Task.WaitAll(tasks.ToArray());
+            return string.Join("\n", toc);
         }
 
         private static Regex AHrefRegex = new Regex(@"(?<=\().*(?=\))");

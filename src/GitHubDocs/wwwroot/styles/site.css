@@ -264,7 +264,7 @@ body, html {
     font-weight: bold;
 }
 
-.nav-list a, .nav-list a:visited,.nav-list a:active, .nav-list a:focus {
+.nav-list a, .nav-list a:visited {
     display: block;
     padding: 6px;
     text-decoration: none;
@@ -371,9 +371,10 @@ article#main {
     line-height: 20px;
     text-align: center;
     margin-right: 5px;
+    margin-left: -17px;
 }
 
-.nav-list a.non-arrow{
+.nav-list a{
     padding-left: 23px;
 }
 

@@ -1,6 +1,7 @@
 ﻿{
-  "Organization": "aspnet",
-  "Repository": "EntityFramework.Docs",
-  "RootPath": "entity-framework",
-  "Disqus": "yuuko"
+    "Organization": "aspnet",
+    "Repository": "EntityFramework.Docs",
+    "RootPath": "entity-framework",
+    "Disqus": "pomelo-1",
+    "Caching": 60
 }
