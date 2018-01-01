@@ -48,7 +48,7 @@ namespace GitHubDocs
                 if (endpoint.EndsWith("/"))
                     endpoint += "index.md";
                 var toc = await Lib.GitHub.RenderTocMdAsync(branch);
-                var content = Lib.GitHub.FilterMarkdown(await Lib.GitHub.GetRawFileAsync(branch, endpoint));
+                var content = Lib.GitHub.ReplaceImages(Lib.GitHub.FilterMarkdown(await Lib.GitHub.GetRawFileAsync(branch, endpoint)), branch);
                 var contribution = await Lib.GitHub.GetContributionAsync(branch, endpoint);
                 var render = context.RequestServices.GetRequiredService<Lib.RazorViewToStringRenderer>();
                 await context.Response.WriteAsync(await render.RenderViewToStringAsync("Index", new Models.Page

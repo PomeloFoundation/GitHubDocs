@@ -1,7 +1,7 @@
 ﻿{
-    "Organization": "aspnet",
-    "Repository": "EntityFramework.Docs",
-    "RootPath": "entity-framework",
+    "Organization": "joyoi",
+    "Repository": "Docs",
+    "RootPath": "docs",
     "Disqus": "pomelo-1",
     "Caching": 60
 }

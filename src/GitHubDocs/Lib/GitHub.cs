@@ -226,6 +226,17 @@ namespace GitHubDocs.Lib
             return ret;
         }
 
+        private static Regex _imgRegex = new Regex(@"!\[[a-zA-Z0-9-_ ]{1,}\][ ]{0,}\(~[/a-zA-Z0-9._-]{1,}\)");
+
+        public static string ReplaceImages(string md, string branch)
+        {
+            foreach (Match x in _imgRegex.Matches(md))
+            {
+                md = md.Replace(x.Value, x.Value.Replace("(~", $"(https://raw.githubusercontent.com/JoyOI/Docs/{branch}/{Startup.Config["RootPath"]}/"));
+            }
+            return md;
+        }
+
         public static string FilterMarkdown(string md)
         {
             var tmp = md.Replace("\r", "").Split('\n').ToList();

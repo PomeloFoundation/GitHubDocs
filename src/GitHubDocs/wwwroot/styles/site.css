@@ -480,3 +480,22 @@ article#main {
         display: inline-block;
     }
 }
+
+.doc-content img {
+    max-width: 100%;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+}
+
+.content-contribution img {
+    box-shadow: none;
+}
+
+.doc-content table {
+    border-collapse: collapse;
+}
+
+    .doc-content table td, .doc-content table th {
+        text-align: left;
+        border: 1px solid #ddd;
+        padding: 5px 8px;
+    }
