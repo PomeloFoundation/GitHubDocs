@@ -26,6 +26,7 @@ namespace GitHubDocs.Lib
                 var url = $"{Startup.Config["Organization"]}/{Startup.Config["Repository"]}/branches/all";
                 using (var client = new HttpClient { BaseAddress = GitHubUri })
                 {
+                    client.Timeout = new TimeSpan(0, 1, 0);
                     var responseMessage = await client.GetAsync(url);
                     var html = await responseMessage.Content.ReadAsStringAsync();
                     var ret = new List<string>();
@@ -47,6 +48,7 @@ namespace GitHubDocs.Lib
             {
                 using (var client = new HttpClient { BaseAddress = GitHubUri })
                 {
+                    client.Timeout = new TimeSpan(0, 1, 0);
                     var responseMessage = await client.GetAsync(url);
                     var ret = await responseMessage.Content.ReadAsStringAsync();
                     if (!url.EndsWith("toc.md"))
@@ -78,6 +80,7 @@ namespace GitHubDocs.Lib
             {
                 using (var client = new HttpClient { BaseAddress = GitHubUri })
                 {
+                    client.Timeout = new TimeSpan(0, 1, 0);
                     var responseMessage = await client.GetAsync(url);
                     var html = await responseMessage.Content.ReadAsStringAsync();
                     var ret = new Models.Contribution();

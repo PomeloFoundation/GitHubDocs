@@ -25,12 +25,7 @@ namespace GitHubDocs
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
             loggerFactory.AddConsole();
-
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
+            app.UseDeveloperExceptionPage();
             app.UseStaticFiles();
             app.Run(async (context) =>
             {
