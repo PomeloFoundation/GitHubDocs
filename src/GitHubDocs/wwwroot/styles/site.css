@@ -492,6 +492,7 @@ article#main {
 
 .doc-content table {
     border-collapse: collapse;
+    margin: 14px 0;
 }
 
     .doc-content table td, .doc-content table th {
